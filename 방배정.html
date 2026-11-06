@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>인원-방배정 맞춤형 사다리타기</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; text-align: center; background-color: #f5f6fa; margin: 0; padding: 15px; color: #2f3640; }
+        .container { max-width: 650px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); position: relative; padding-bottom: 50px; box-sizing: border-box; }
+        h1 { font-size: 22px; margin-top: 0; color: #2f3640; }
+        
+        .list-container { display: flex; justify-content: space-between; margin-top: 15px; gap: 10px; box-sizing: border-box; }
+        
+        /* [수정] 이름 영역(60%)과 방 번호 영역(36%)의 가로 비율을 스마트폰 규격에 맞게 분할 */
+        .column-names { width: 60%; text-align: left; box-sizing: border-box; }
+        .column-rooms { width: 36%; text-align: left; box-sizing: border-box; }
+        
+        .column-title { font-weight: bold; font-size: 13px; margin-bottom: 5px; color: #7f8c8d; white-space: nowrap; }
+        .item-row { display: flex; align-items: center; margin-bottom: 5px; width: 100%; box-sizing: border-box; }
+        
+        .item-row input { width: 100%; min-width: 0; flex: 1; padding: 8px; border: 1px solid #dcdde1; border-radius: 4px; font-size: 14px; box-sizing: border-box; }
+        .btn-delete { background-color: #e84118; color: white; border: none; padding: 8px 10px; margin-left: 5px; border-radius: 4px; cursor: pointer; font-weight: bold; flex-shrink: 0; }
+        
+        .control-btns { margin-top: 15px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .btn-add { background-color: #0097e6; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; }
+        .btn-run { background-color: #4cd137; color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; flex: 1; }
+        
+        #canvas-container { margin-top: 25px; display: none; overflow-x: auto; overflow-y: auto; max-height: 450px;
+            border: 1px solid #f1f2f6;
+            border-radius: 6px;
+-webkit-overflow-scrolling: touch; }
+        canvas { background: #ffffff; border: 1px solid #f1f2f6; border-radius: 6px; display: block; }
+        #result-box { margin-top: 20px; padding: 15px; background: #f1f2f6; border-radius: 6px; font-weight: bold; display: none; white-space: pre-line; text-align: left; font-size: 15px; line-height: 1.6; box-sizing: border-box; }
+        .footer-credit { position: absolute; bottom: 15px; right: 20px; font-size: 13px; color: #a4b0be; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📋 인원-방배정 맞춤형 사다리타기</h1>
+    
+    <div class="list-container">
+        <!-- [수정] 클래스명을 구체적으로 변경하여 좌우 비대칭 너비 대입 -->
+        <div class="column-names">
+            <div class="column-title">👤 이름</div>
+            <div id="names-list"></div>
+        </div>
+        <div class="column-rooms">
+            <div class="column-title">🎁 방 번호</div>
+            <div id="rooms-list"></div>
+        </div>
+    </div>
+
+    <div class="control-btns">
+        <button class="btn-add" onclick="addItem()">➕ 인원 추가</button>
+        <button class="btn-run" onclick="drawLadderAndResult()">사다리 타기 시작!</button>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="ladderCanvas" height="650" onclick="handleCanvasClick(event)"></canvas>
+    </div>
+
+    <div id="result-box"></div>
+
+    <div class="footer-credit">만든이 : 준혁</div>
+</div>
+
+<script>
+let namesData = ["김다빈", "김태경", "문민석", "송준혁", "유찬양", "이석환", "이승진", "전중혁", "한양식", "홍성우"];
+let roomsData = ["203", "204", "205", "206", "3층", "403", "404", "405", "당직실", "당직실"];
+let deletedRoomsHistory = [];
+
+let globalPlayerPaths = [];
+let activeTraceIndex = null;
+let traceProgress = 0;
+let animationTimer = null;
+let savedBridges = [];
+let savedNamesOrder = [];
+let savedRoomsOrder = [];
+
+const softColors = ["#4ea8de", "#ff7096", "#52b788", "#f4a261", "#9b5de5", "#f15bb5", "#00bbf9", "#00f5d4", "#ffb703", "#90e0ef"];
+
+function renderLists() {
+    namesData.sort((a, b) => a.localeCompare(b, 'ko'));
+    
+    const namesContainer = document.getElementById('names-list');
+    const roomsContainer = document.getElementById('rooms-list');
+    namesContainer.innerHTML = '';
+    roomsContainer.innerHTML = '';
+    
+    namesData.forEach((name, index) => {
+        let nameRow = document.createElement('div');
+        nameRow.className = 'item-row';
+        nameRow.innerHTML = `
+            <input type="text" value="${name}" onchange="updateName(${index}, this.value)">
+            <button class="btn-delete" onclick="deleteItem(${index})">X</button>
+        `;
+        namesContainer.appendChild(nameRow);
+    });
+
+    roomsData.forEach((room, index) => {
+        let roomRow = document.createElement('div');
+        roomRow.className = 'item-row';
+        roomRow.innerHTML = `
+            <input type="text" value="${room}" onchange="updateRoom(${index}, this.value)">
+        `;
+        roomsContainer.appendChild(roomRow);
+    });
+}
+
+function updateName(index, value) { 
+    namesData[index] = value.trim(); 
+    renderLists(); 
+}
+function updateRoom(index, value) { 
+    roomsData[index] = value.trim(); 
+}
+
+// 인원 추가 기능 시 가나다 정렬을 해치지 않는 '희찬' 이름 부여 유지
+function addItem() {
+    let nextRoom = "당직실";
+    if (deletedRoomsHistory.length > 0) {
+        nextRoom = deletedRoomsHistory.pop();
+    }
+    namesData.push("NAME");
+    roomsData.push(nextRoom);
+    renderLists();
+}
+
+function deleteItem(index) {
+    if (namesData.length <= 2) {
+        alert("최소 2명 이상은 유지되어야 합니다.");
+        return;
+    }
+    namesData.splice(index, 1);
+    let removedRoom = roomsData.pop();
+    deletedRoomsHistory.push(removedRoom);
+    renderLists();
+}
+
+function drawLadderAndResult() {
+    if (animationTimer) cancelAnimationFrame(animationTimer);
+
+    let currentNames = namesData.map(n => n.trim()).filter(n => n);
+    let currentRooms = roomsData.map(r => r.trim()).filter(r => r);
+    if (currentNames.length < 2) return;
+
+    currentNames.sort(() => Math.random() - 0.5);
+    currentRooms.sort(() => Math.random() - 0.5);
+
+    savedNamesOrder = [...currentNames];
+    savedRoomsOrder = [...currentRooms];
+
+    const numCols = currentNames.length;
+    const canvasContainer = document.getElementById('canvas-container');
+    const canvas = document.getElementById('ladderCanvas');
+    canvasContainer.style.display = "block";
+    canvas.width = Math.max(550, numCols * 90);
+    
+    let startX = 50;
+    let endX = canvas.width - 50;
+    let startY = 70;
+    let endY = canvas.height - 70;
+    let colWidth = (endX - startX) / (numCols - 1);
+
+    savedBridges = [];
+    for (let i = 0; i < numCols - 1; i++) {
+        let numBridges = 3; 
+        for (let j = 0; j < numBridges; j++) {
+            let sectionSize = (endY - startY - 40) / numBridges;
+            let minY = startY + 20 + (j * sectionSize);
+            let h = Math.floor(Math.random() * (sectionSize - 10)) + minY;
+            while (savedBridges.some(b => Math.abs(b.y - h) < 10)) { h += 3; }
+            savedBridges.push({ fromCol: i, y: h });
+        }
+    }
+    savedBridges.sort((a, b) => a.y - b.y);
+
+    let finalMapping = new Array(numCols);
+    globalPlayerPaths = [];
+
+    for (let startCol = 0; startCol < numCols; startCol++) {
+        let path = [{ x: startX + startCol * colWidth, y: startY }];
+        let currentCol = startCol;
+
+        for (let k = 0; k < savedBridges.length; k++) {
+            let b = savedBridges[k];
+            if (b.fromCol === currentCol) {
+                path.push({ x: startX + currentCol * colWidth, y: b.y });
+                currentCol++;
+                path.push({ x: startX + currentCol * colWidth, y: b.y });
+            } else if (b.fromCol === currentCol - 1) {
+                path.push({ x: startX + currentCol * colWidth, y: b.y });
+                currentCol--;
+                path.push({ x: startX + currentCol * colWidth, y: b.y });
+            }
+        }
+        path.push({ x: startX + currentCol * colWidth, y: endY });
+
+        globalPlayerPaths.push({
+            name: currentNames[startCol],
+            finalRoom: currentRooms[currentCol],
+            path: path,
+            color: softColors[startCol % softColors.length],
+            clickRect: { xMin: (startX + startCol * colWidth) - 35, xMax: (startX + startCol * colWidth) + 35, yMin: startY - 45, yMax: startY }
+        });
+
+        finalMapping[startCol] = currentRooms[currentCol];
+    }
+
+    activeTraceIndex = null;
+    drawBaseLadder();
+
+    let resultBox = document.getElementById('result-box');
+    resultBox.style.display = "block";
+    let text = "✨ 【 사다리 추적 매칭 최종 결과 】 ✨\n\n";
+    let resultData = [];
+    for (let i = 0; i < numCols; i++) { resultData.push({ name: currentNames[i], room: finalMapping[i] }); }
+    resultData.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    resultData.forEach(p => { text += `👤 ${p.name}   ➔   🚪 [ ${p.room} ]\n`; });
+    resultBox.innerText = text;
+}
+
+function drawBaseLadder() {
+    let canvas = document.getElementById('ladderCanvas');
+    let ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    let numCols = savedNamesOrder.length;
+    let startX = 50; let endX = canvas.width - 50;
+    let startY = 70; let endY = canvas.height - 70;
+    let colWidth = (endX - startX) / (numCols - 1);
+
+    ctx.lineWidth = 3.5;
+    ctx.font = "bold 13px 'Malgun Gothic', sans-serif";
+    ctx.textAlign = "center";
+
+    for (let i = 0; i < numCols; i++) {
+        let x = startX + (i * colWidth);
+        ctx.fillStyle = "#2f3640";
+        ctx.fillText(savedNamesOrder[i], x, startY - 25);
+        ctx.beginPath();
+        ctx.moveTo(x, startY);
+        ctx.lineTo(x, endY);
+        ctx.strokeStyle = "#dcdde1";
+        ctx.stroke();
+        ctx.fillStyle = "#333";
+        ctx.fillText(savedRoomsOrder[i], x, endY + 30);
+    }
+
+ctx.strokeStyle = "#57606f";
+ctx.lineWidth = 3;
+savedBridges.forEach(b => {
+if (b.fromCol >= 0 && b.fromCol < numCols - 1) {
+let x1 = startX + (b.fromCol * colWidth);
+let x2 = startX + ((b.fromCol + 1) * colWidth);
+ctx.beginPath();
+ctx.moveTo(x1, b.y);
+ctx.lineTo(x2, b.y);
+ctx.stroke();
+}
+});
+}
+function handleCanvasClick(event) {
+if (globalPlayerPaths.length === 0) return;
+let canvas = document.getElementById('ladderCanvas');
+let rect = canvas.getBoundingClientRect();
+let clickX = event.clientX - rect.left;
+let clickY = event.clientY - rect.top;
+for (let i = 0; i < globalPlayerPaths.length; i++) {
+let r = globalPlayerPaths[i].clickRect;
+if (clickX >= r.xMin && clickX <= r.xMax && clickY >= r.yMin && clickY <= r.yMax) {
+if (animationTimer) cancelAnimationFrame(animationTimer);
+activeTraceIndex = i;
+traceProgress = 0;
+animateRouteTrace();
+break;
+}
+}
+}
+function animateRouteTrace() {
+traceProgress += 0.02;
+let canvas = document.getElementById('ladderCanvas');
+let ctx = canvas.getContext('2d');
+drawBaseLadder();
+if (activeTraceIndex !== null) {
+let player = globalPlayerPaths[activeTraceIndex];
+ctx.strokeStyle = player.color;
+ctx.lineWidth = 5;
+ctx.lineJoin = "round";
+ctx.lineCap = "round";
+ctx.beginPath();
+ctx.moveTo(player.path[0].x, player.path[0].y);
+let totalPoints = player.path.length;
+let currentTargetFloat = traceProgress * (totalPoints - 1);
+let currentIdx = Math.floor(currentTargetFloat);
+let t = currentTargetFloat - currentIdx;
+for (let i = 1; i <= currentIdx; i++) {
+ctx.lineTo(player.path[i].x, player.path[i].y);
+}
+if (currentIdx < totalPoints - 1) {
+let p1 = player.path[currentIdx];
+let p2 = player.path[currentIdx + 1];
+let nextX = p1.x + (p2.x - p1.x) * t;
+let nextY = p1.y + (p2.y - p1.y) * t;
+ctx.lineTo(nextX, nextY);
+} else {
+ctx.lineTo(player.path[totalPoints - 1].x, player.path[totalPoints - 1].y);
+}
+ctx.stroke();
+}
+if (traceProgress < 1) {
+animationTimer = requestAnimationFrame(animateRouteTrace);
+}
+}
+renderLists();
+
+
+</script>
+
+</body>
+</html>
+
