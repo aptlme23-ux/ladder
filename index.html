@@ -8,68 +8,45 @@
         body { font-family: 'Malgun Gothic', sans-serif; text-align: center; background-color: #f5f6fa; margin: 0; padding: 15px; color: #2f3640; }
         .container { max-width: 650px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); position: relative; padding-bottom: 50px; box-sizing: border-box; }
         h1 { font-size: 22px; margin-top: 0; color: #2f3640; }
-        
         .list-container { display: flex; justify-content: space-between; margin-top: 15px; gap: 10px; box-sizing: border-box; }
-        
-        /* [수정] 이름 영역(60%)과 방 번호 영역(36%)의 가로 비율을 스마트폰 규격에 맞게 분할 */
         .column-names { width: 60%; text-align: left; box-sizing: border-box; }
         .column-rooms { width: 36%; text-align: left; box-sizing: border-box; }
-        
         .column-title { font-weight: bold; font-size: 13px; margin-bottom: 5px; color: #7f8c8d; white-space: nowrap; }
         .item-row { display: flex; align-items: center; margin-bottom: 5px; width: 100%; box-sizing: border-box; }
-        
         .item-row input { width: 100%; min-width: 0; flex: 1; padding: 8px; border: 1px solid #dcdde1; border-radius: 4px; font-size: 14px; box-sizing: border-box; }
         .btn-delete { background-color: #e84118; color: white; border: none; padding: 8px 10px; margin-left: 5px; border-radius: 4px; cursor: pointer; font-weight: bold; flex-shrink: 0; }
-        
         .control-btns { margin-top: 15px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
         .btn-add { background-color: #0097e6; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; }
         .btn-run { background-color: #4cd137; color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; flex: 1; }
-        
-        #canvas-container { margin-top: 25px; display: none; overflow-x: auto; overflow-y: auto; max-height: 450px;
-            border: 1px solid #f1f2f6;
-            border-radius: 6px;
--webkit-overflow-scrolling: touch; }
+        .btn-share { background-color: #7b2ff7; color: white; border: none; padding: 12px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; }
+        button:disabled { opacity: 0.55; cursor: not-allowed; }
+        #canvas-container { margin-top: 25px; display: none; overflow-x: auto; overflow-y: auto; max-height: 450px; border: 1px solid #f1f2f6; border-radius: 6px; -webkit-overflow-scrolling: touch; }
         canvas { background: #ffffff; border: 1px solid #f1f2f6; border-radius: 6px; display: block; }
-        #result-box { margin-top: 20px; padding: 15px; background: #f1f2f6; border-radius: 6px; font-weight: bold; display: none; white-space: pre-line; text-align: left; font-size: 15px; line-height: 1.6; box-sizing: border-box; }
+        #result-box { margin-top: 20px; padding: 15px; background: #f1f2f6; border-radius: 6px; font-weight: bold; display: none; white-space: pre-line; text-align: left; font-size: 15px; line-height: 1.8; }
         .footer-credit { position: absolute; bottom: 15px; right: 20px; font-size: 13px; color: #a4b0be; font-weight: bold; }
+        @media (max-width: 480px) { .container { padding: 15px; padding-bottom: 45px; } h1 { font-size: 19px; } .btn-add { padding: 10px; } }
     </style>
 </head>
 <body>
-
 <div class="container">
     <h1>📋 인원-방배정 맞춤형 사다리타기</h1>
-    
     <div class="list-container">
-        <!-- [수정] 클래스명을 구체적으로 변경하여 좌우 비대칭 너비 대입 -->
-        <div class="column-names">
-            <div class="column-title">👤 이름</div>
-            <div id="names-list"></div>
-        </div>
-        <div class="column-rooms">
-            <div class="column-title">🎁 방 번호</div>
-            <div id="rooms-list"></div>
-        </div>
+        <div class="column-names"><div class="column-title">👤 이름</div><div id="names-list"></div></div>
+        <div class="column-rooms"><div class="column-title">🎁 방 번호</div><div id="rooms-list"></div></div>
     </div>
-
     <div class="control-btns">
         <button class="btn-add" onclick="addItem()">➕ 인원 추가</button>
         <button class="btn-run" onclick="drawLadderAndResult()">사다리 타기 시작!</button>
+        <button class="btn-share" id="share-button" onclick="shareResultImage()" disabled>📸 이미지로 공유</button>
     </div>
-
-    <div id="canvas-container">
-        <canvas id="ladderCanvas" height="650" onclick="handleCanvasClick(event)"></canvas>
-    </div>
-
+    <div id="canvas-container"><canvas id="ladderCanvas" height="650" onclick="handleCanvasClick(event)"></canvas></div>
     <div id="result-box"></div>
-
     <div class="footer-credit">만든이 : 준혁</div>
 </div>
-
 <script>
 let namesData = ["김다빈", "김태경", "문민석", "송준혁", "유찬양", "이석환", "이승진", "전중혁", "한양식", "홍성우"];
 let roomsData = ["203", "204", "205", "206", "3층", "403", "404", "405", "당직실", "당직실"];
 let deletedRoomsHistory = [];
-
 let globalPlayerPaths = [];
 let activeTraceIndex = null;
 let traceProgress = 0;
@@ -77,77 +54,62 @@ let animationTimer = null;
 let savedBridges = [];
 let savedNamesOrder = [];
 let savedRoomsOrder = [];
-
+let savedResults = [];
 const softColors = ["#4ea8de", "#ff7096", "#52b788", "#f4a261", "#9b5de5", "#f15bb5", "#00bbf9", "#00f5d4", "#ffb703", "#90e0ef"];
+
+function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+}
 
 function renderLists() {
     namesData.sort((a, b) => a.localeCompare(b, 'ko'));
-    
     const namesContainer = document.getElementById('names-list');
     const roomsContainer = document.getElementById('rooms-list');
     namesContainer.innerHTML = '';
     roomsContainer.innerHTML = '';
-    
     namesData.forEach((name, index) => {
-        let nameRow = document.createElement('div');
+        const nameRow = document.createElement('div');
         nameRow.className = 'item-row';
-        nameRow.innerHTML = `
-            <input type="text" value="${name}" onchange="updateName(${index}, this.value)">
-            <button class="btn-delete" onclick="deleteItem(${index})">X</button>
-        `;
+        nameRow.innerHTML = `<input type="text" value="${escapeHtml(name)}" onchange="updateName(${index}, this.value)"><button class="btn-delete" onclick="deleteItem(${index})">X</button>`;
         namesContainer.appendChild(nameRow);
     });
-
     roomsData.forEach((room, index) => {
-        let roomRow = document.createElement('div');
+        const roomRow = document.createElement('div');
         roomRow.className = 'item-row';
-        roomRow.innerHTML = `
-            <input type="text" value="${room}" onchange="updateRoom(${index}, this.value)">
-        `;
+        roomRow.innerHTML = `<input type="text" value="${escapeHtml(room)}" onchange="updateRoom(${index}, this.value)">`;
         roomsContainer.appendChild(roomRow);
     });
 }
 
-function updateName(index, value) { 
-    namesData[index] = value.trim(); 
-    renderLists(); 
-}
-function updateRoom(index, value) { 
-    roomsData[index] = value.trim(); 
-}
+function updateName(index, value) { namesData[index] = value.trim(); renderLists(); }
+function updateRoom(index, value) { roomsData[index] = value.trim(); }
 
-// 인원 추가 기능 시 가나다 정렬을 해치지 않는 '희찬' 이름 부여 유지
 function addItem() {
     let nextRoom = "당직실";
-    if (deletedRoomsHistory.length > 0) {
-        nextRoom = deletedRoomsHistory.pop();
-    }
+    if (deletedRoomsHistory.length > 0) nextRoom = deletedRoomsHistory.pop();
     namesData.push("NAME");
     roomsData.push(nextRoom);
     renderLists();
 }
 
 function deleteItem(index) {
-    if (namesData.length <= 2) {
-        alert("최소 2명 이상은 유지되어야 합니다.");
-        return;
-    }
+    if (namesData.length <= 2) { alert("최소 2명 이상은 유지되어야 합니다."); return; }
     namesData.splice(index, 1);
-    let removedRoom = roomsData.pop();
-    deletedRoomsHistory.push(removedRoom);
+    deletedRoomsHistory.push(roomsData.pop());
     renderLists();
 }
 
 function drawLadderAndResult() {
     if (animationTimer) cancelAnimationFrame(animationTimer);
-
-    let currentNames = namesData.map(n => n.trim()).filter(n => n);
-    let currentRooms = roomsData.map(r => r.trim()).filter(r => r);
-    if (currentNames.length < 2) return;
+    const currentNames = namesData.map(n => n.trim()).filter(Boolean);
+    const currentRooms = roomsData.map(r => r.trim()).filter(Boolean);
+    if (currentNames.length < 2 || currentNames.length !== currentRooms.length) {
+        alert("이름과 방 번호를 각각 2개 이상, 같은 개수로 입력해 주세요.");
+        return;
+    }
 
     currentNames.sort(() => Math.random() - 0.5);
     currentRooms.sort(() => Math.random() - 0.5);
-
     savedNamesOrder = [...currentNames];
     savedRoomsOrder = [...currentRooms];
 
@@ -156,168 +118,220 @@ function drawLadderAndResult() {
     const canvas = document.getElementById('ladderCanvas');
     canvasContainer.style.display = "block";
     canvas.width = Math.max(550, numCols * 90);
-    
-    let startX = 50;
-    let endX = canvas.width - 50;
-    let startY = 70;
-    let endY = canvas.height - 70;
-    let colWidth = (endX - startX) / (numCols - 1);
+    const startX = 50, endX = canvas.width - 50, startY = 70, endY = canvas.height - 70;
+    const colWidth = (endX - startX) / (numCols - 1);
 
     savedBridges = [];
     for (let i = 0; i < numCols - 1; i++) {
-        let numBridges = 3; 
+        const numBridges = 3;
         for (let j = 0; j < numBridges; j++) {
-            let sectionSize = (endY - startY - 40) / numBridges;
-            let minY = startY + 20 + (j * sectionSize);
+            const sectionSize = (endY - startY - 40) / numBridges;
+            const minY = startY + 20 + j * sectionSize;
             let h = Math.floor(Math.random() * (sectionSize - 10)) + minY;
-            while (savedBridges.some(b => Math.abs(b.y - h) < 10)) { h += 3; }
+            while (savedBridges.some(b => Math.abs(b.y - h) < 10)) h += 3;
             savedBridges.push({ fromCol: i, y: h });
         }
     }
     savedBridges.sort((a, b) => a.y - b.y);
 
-    let finalMapping = new Array(numCols);
     globalPlayerPaths = [];
-
+    const finalMapping = new Array(numCols);
     for (let startCol = 0; startCol < numCols; startCol++) {
-        let path = [{ x: startX + startCol * colWidth, y: startY }];
+        const path = [{ x: startX + startCol * colWidth, y: startY }];
         let currentCol = startCol;
-
-        for (let k = 0; k < savedBridges.length; k++) {
-            let b = savedBridges[k];
-            if (b.fromCol === currentCol) {
-                path.push({ x: startX + currentCol * colWidth, y: b.y });
+        for (const bridge of savedBridges) {
+            if (bridge.fromCol === currentCol) {
+                path.push({ x: startX + currentCol * colWidth, y: bridge.y });
                 currentCol++;
-                path.push({ x: startX + currentCol * colWidth, y: b.y });
-            } else if (b.fromCol === currentCol - 1) {
-                path.push({ x: startX + currentCol * colWidth, y: b.y });
+                path.push({ x: startX + currentCol * colWidth, y: bridge.y });
+            } else if (bridge.fromCol === currentCol - 1) {
+                path.push({ x: startX + currentCol * colWidth, y: bridge.y });
                 currentCol--;
-                path.push({ x: startX + currentCol * colWidth, y: b.y });
+                path.push({ x: startX + currentCol * colWidth, y: bridge.y });
             }
         }
         path.push({ x: startX + currentCol * colWidth, y: endY });
-
         globalPlayerPaths.push({
-            name: currentNames[startCol],
-            finalRoom: currentRooms[currentCol],
-            path: path,
+            name: currentNames[startCol], finalRoom: currentRooms[currentCol], path,
             color: softColors[startCol % softColors.length],
-            clickRect: { xMin: (startX + startCol * colWidth) - 35, xMax: (startX + startCol * colWidth) + 35, yMin: startY - 45, yMax: startY }
+            clickRect: { xMin: startX + startCol * colWidth - 35, xMax: startX + startCol * colWidth + 35, yMin: startY - 45, yMax: startY }
         });
-
         finalMapping[startCol] = currentRooms[currentCol];
     }
 
     activeTraceIndex = null;
     drawBaseLadder();
-
-    let resultBox = document.getElementById('result-box');
-    resultBox.style.display = "block";
+    savedResults = currentNames.map((name, i) => ({ name, room: finalMapping[i] })).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
     let text = "✨ 【 사다리 추적 매칭 최종 결과 】 ✨\n\n";
-    let resultData = [];
-    for (let i = 0; i < numCols; i++) { resultData.push({ name: currentNames[i], room: finalMapping[i] }); }
-    resultData.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-    resultData.forEach(p => { text += `👤 ${p.name}   ➔   🚪 [ ${p.room} ]\n`; });
+    savedResults.forEach(person => { text += `👤 ${person.name}   ➔   🚪 [ ${person.room} ]\n`; });
+    const resultBox = document.getElementById('result-box');
+    resultBox.style.display = "block";
     resultBox.innerText = text;
+    document.getElementById('share-button').disabled = false;
 }
 
 function drawBaseLadder() {
-    let canvas = document.getElementById('ladderCanvas');
-    let ctx = canvas.getContext('2d');
+    const canvas = document.getElementById('ladderCanvas');
+    const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    let numCols = savedNamesOrder.length;
-    let startX = 50; let endX = canvas.width - 50;
-    let startY = 70; let endY = canvas.height - 70;
-    let colWidth = (endX - startX) / (numCols - 1);
-
+    const numCols = savedNamesOrder.length;
+    const startX = 50, endX = canvas.width - 50, startY = 70, endY = canvas.height - 70;
+    const colWidth = (endX - startX) / (numCols - 1);
     ctx.lineWidth = 3.5;
     ctx.font = "bold 13px 'Malgun Gothic', sans-serif";
     ctx.textAlign = "center";
-
     for (let i = 0; i < numCols; i++) {
-        let x = startX + (i * colWidth);
+        const x = startX + i * colWidth;
         ctx.fillStyle = "#2f3640";
         ctx.fillText(savedNamesOrder[i], x, startY - 25);
-        ctx.beginPath();
-        ctx.moveTo(x, startY);
-        ctx.lineTo(x, endY);
-        ctx.strokeStyle = "#dcdde1";
-        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x, startY); ctx.lineTo(x, endY); ctx.strokeStyle = "#dcdde1"; ctx.stroke();
         ctx.fillStyle = "#333";
         ctx.fillText(savedRoomsOrder[i], x, endY + 30);
     }
+    ctx.strokeStyle = "#57606f";
+    ctx.lineWidth = 3;
+    savedBridges.forEach(bridge => {
+        if (bridge.fromCol >= 0 && bridge.fromCol < numCols - 1) {
+            const x1 = startX + bridge.fromCol * colWidth;
+            const x2 = startX + (bridge.fromCol + 1) * colWidth;
+            ctx.beginPath(); ctx.moveTo(x1, bridge.y); ctx.lineTo(x2, bridge.y); ctx.stroke();
+        }
+    });
+}
 
-ctx.strokeStyle = "#57606f";
-ctx.lineWidth = 3;
-savedBridges.forEach(b => {
-if (b.fromCol >= 0 && b.fromCol < numCols - 1) {
-let x1 = startX + (b.fromCol * colWidth);
-let x2 = startX + ((b.fromCol + 1) * colWidth);
-ctx.beginPath();
-ctx.moveTo(x1, b.y);
-ctx.lineTo(x2, b.y);
-ctx.stroke();
-}
-});
-}
 function handleCanvasClick(event) {
-if (globalPlayerPaths.length === 0) return;
-let canvas = document.getElementById('ladderCanvas');
-let rect = canvas.getBoundingClientRect();
-let clickX = event.clientX - rect.left;
-let clickY = event.clientY - rect.top;
-for (let i = 0; i < globalPlayerPaths.length; i++) {
-let r = globalPlayerPaths[i].clickRect;
-if (clickX >= r.xMin && clickX <= r.xMax && clickY >= r.yMin && clickY <= r.yMax) {
-if (animationTimer) cancelAnimationFrame(animationTimer);
-activeTraceIndex = i;
-traceProgress = 0;
-animateRouteTrace();
-break;
+    if (globalPlayerPaths.length === 0) return;
+    const canvas = document.getElementById('ladderCanvas');
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+    const clickX = (event.clientX - rect.left) * scaleX;
+    const clickY = (event.clientY - rect.top) * scaleY;
+    for (let i = 0; i < globalPlayerPaths.length; i++) {
+        const r = globalPlayerPaths[i].clickRect;
+        if (clickX >= r.xMin && clickX <= r.xMax && clickY >= r.yMin && clickY <= r.yMax) {
+            if (animationTimer) cancelAnimationFrame(animationTimer);
+            activeTraceIndex = i;
+            traceProgress = 0;
+            animateRouteTrace();
+            break;
+        }
+    }
 }
-}
-}
+
 function animateRouteTrace() {
-traceProgress += 0.02;
-let canvas = document.getElementById('ladderCanvas');
-let ctx = canvas.getContext('2d');
-drawBaseLadder();
-if (activeTraceIndex !== null) {
-let player = globalPlayerPaths[activeTraceIndex];
-ctx.strokeStyle = player.color;
-ctx.lineWidth = 5;
-ctx.lineJoin = "round";
-ctx.lineCap = "round";
-ctx.beginPath();
-ctx.moveTo(player.path[0].x, player.path[0].y);
-let totalPoints = player.path.length;
-let currentTargetFloat = traceProgress * (totalPoints - 1);
-let currentIdx = Math.floor(currentTargetFloat);
-let t = currentTargetFloat - currentIdx;
-for (let i = 1; i <= currentIdx; i++) {
-ctx.lineTo(player.path[i].x, player.path[i].y);
+    traceProgress += 0.02;
+    const canvas = document.getElementById('ladderCanvas');
+    const ctx = canvas.getContext('2d');
+    drawBaseLadder();
+    if (activeTraceIndex !== null) {
+        const player = globalPlayerPaths[activeTraceIndex];
+        ctx.strokeStyle = player.color;
+        ctx.lineWidth = 5;
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(player.path[0].x, player.path[0].y);
+        const totalPoints = player.path.length;
+        const currentTargetFloat = traceProgress * (totalPoints - 1);
+        const currentIdx = Math.floor(currentTargetFloat);
+        const t = currentTargetFloat - currentIdx;
+        for (let i = 1; i <= currentIdx; i++) ctx.lineTo(player.path[i].x, player.path[i].y);
+        if (currentIdx < totalPoints - 1) {
+            const p1 = player.path[currentIdx], p2 = player.path[currentIdx + 1];
+            ctx.lineTo(p1.x + (p2.x - p1.x) * t, p1.y + (p2.y - p1.y) * t);
+        } else {
+            ctx.lineTo(player.path[totalPoints - 1].x, player.path[totalPoints - 1].y);
+        }
+        ctx.stroke();
+    }
+    if (traceProgress < 1) animationTimer = requestAnimationFrame(animateRouteTrace);
 }
-if (currentIdx < totalPoints - 1) {
-let p1 = player.path[currentIdx];
-let p2 = player.path[currentIdx + 1];
-let nextX = p1.x + (p2.x - p1.x) * t;
-let nextY = p1.y + (p2.y - p1.y) * t;
-ctx.lineTo(nextX, nextY);
-} else {
-ctx.lineTo(player.path[totalPoints - 1].x, player.path[totalPoints - 1].y);
+
+function shareResultImage() {
+    if (savedResults.length === 0) {
+        alert("먼저 사다리 타기를 시작해 주세요.");
+        return;
+    }
+
+    const sourceCanvas = document.getElementById('ladderCanvas');
+    const output = document.createElement('canvas');
+    const width = 1200;
+    const padding = 48;
+    const ladderHeight = 430; // 공유 이미지에서는 사다리 높이를 줄여 결과 목록 공간을 확보합니다.
+    const resultTitleHeight = 64;
+    const rowHeight = 42;
+    const resultsHeight = resultTitleHeight + savedResults.length * rowHeight;
+    const ladderTop = 118;
+    const ladderBottom = 28;
+    const resultTop = ladderTop + ladderHeight + 28;
+
+    output.width = width;
+    output.height = resultTop + resultsHeight + ladderBottom;
+    const ctx = output.getContext('2d');
+
+    ctx.fillStyle = '#f5f7fb';
+    ctx.fillRect(0, 0, output.width, output.height);
+    ctx.fillStyle = '#2f3640';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 38px "Malgun Gothic", sans-serif';
+    ctx.fillText('📋 사다리 결과 공유', width / 2, 70);
+
+    const ladderLeft = padding;
+    const ladderWidth = width - padding * 2;
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#dfe5ee';
+    ctx.lineWidth = 2;
+    ctx.fillRect(ladderLeft, ladderTop, ladderWidth, ladderHeight);
+    ctx.strokeRect(ladderLeft, ladderTop, ladderWidth, ladderHeight);
+    // 사다리 그림은 세로로 압축해 아래의 매칭 결과가 온전히 들어가도록 합니다.
+    ctx.drawImage(sourceCanvas, ladderLeft + 16, ladderTop + 14, ladderWidth - 32, ladderHeight - 28);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(padding, resultTop, width - padding * 2, resultsHeight);
+    ctx.strokeStyle = '#dfe5ee';
+    ctx.strokeRect(padding, resultTop, width - padding * 2, resultsHeight);
+    ctx.fillStyle = '#2f3640';
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 29px "Malgun Gothic", sans-serif';
+    ctx.fillText('✨ 사다리 추적 매칭 최종 결과 ✨', padding + 24, resultTop + 42);
+
+    savedResults.forEach((person, index) => {
+        const y = resultTop + resultTitleHeight + index * rowHeight;
+        const label = `👤 ${person.name}   ➔   🚪 [ ${person.room} ]`;
+        ctx.font = 'bold 26px "Malgun Gothic", sans-serif';
+        // 긴 이름도 결과 이미지 안에서 잘리지 않도록 필요한 경우 글꼴 크기를 줄입니다.
+        while (ctx.measureText(label).width > width - padding * 2 - 48 && parseInt(ctx.font, 10) > 16) {
+            ctx.font = `bold ${parseInt(ctx.font, 10) - 1}px "Malgun Gothic", sans-serif`;
+        }
+        ctx.fillStyle = '#2f3640';
+        ctx.fillText(label, padding + 24, y + 29, width - padding * 2 - 48);
+    });
+
+    output.toBlob(async (blob) => {
+        if (!blob) {
+            alert('이미지 생성에 실패했습니다. 다시 시도해 주세요.');
+            return;
+        }
+        const file = new File([blob], 'ladder-result.png', { type: 'image/png' });
+        try {
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({ title: '사다리 결과', text: '사다리 결과와 방 배정이 완료됐어요!', files: [file] });
+                return;
+            }
+        } catch (error) {
+            if (error && error.name === 'AbortError') return;
+            console.warn('이미지 공유를 사용할 수 없어 다운로드로 대체합니다.', error);
+        }
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'ladder-result.png';
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        alert('결과 이미지가 다운로드됐어요. 다운로드한 이미지를 공유해 주세요.');
+    }, 'image/png');
 }
-ctx.stroke();
-}
-if (traceProgress < 1) {
-animationTimer = requestAnimationFrame(animateRouteTrace);
-}
-}
+
 renderLists();
-
-
 </script>
-
 </body>
 </html>
-
