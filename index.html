@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>인원-방배정 맞춤형 사다리타기</title>
+    <title>방배정 사다리타기</title>
     <style>
         body { font-family: 'Malgun Gothic', sans-serif; text-align: center; background-color: #f5f6fa; margin: 0; padding: 15px; color: #2f3640; }
         .container { max-width: 650px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); position: relative; padding-bottom: 50px; box-sizing: border-box; }
@@ -18,13 +18,13 @@
         .control-btns { margin-top: 15px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
         .btn-add { background-color: #0097e6; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; }
         .btn-run { background-color: #4cd137; color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; flex: 1; }
-        .btn-share { background: linear-gradient(135deg, #7b2ff7, #4b8bff); color: white; border: none; padding: 12px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; }
+        .btn-share { background-color: #7b2ff7; color: white; border: none; padding: 12px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; }
         button:disabled { opacity: 0.55; cursor: not-allowed; }
         #canvas-container { margin-top: 25px; display: none; overflow-x: auto; overflow-y: auto; max-height: 450px; border: 1px solid #f1f2f6; border-radius: 6px; -webkit-overflow-scrolling: touch; }
         canvas { background: #ffffff; border: 1px solid #f1f2f6; border-radius: 6px; display: block; }
         #result-box { margin-top: 20px; padding: 15px; background: #f1f2f6; border-radius: 6px; font-weight: bold; display: none; white-space: pre-line; text-align: left; font-size: 15px; line-height: 1.8; }
         .footer-credit { position: absolute; bottom: 15px; right: 20px; font-size: 13px; color: #a4b0be; font-weight: bold; }
-        @media (max-width: 480px) { .container { padding: 15px; padding-bottom: 45px; } h1 { font-size: 19px; } .column-names { width: 60%; } .column-rooms { width: 36%; } .btn-add { padding: 10px; } }
+        @media (max-width: 480px) { .container { padding: 15px; padding-bottom: 45px; } h1 { font-size: 19px; } .btn-add { padding: 10px; } }
     </style>
 </head>
 <body>
@@ -37,7 +37,7 @@
     <div class="control-btns">
         <button class="btn-add" onclick="addItem()">➕ 인원 추가</button>
         <button class="btn-run" onclick="drawLadderAndResult()">사다리 타기 시작!</button>
-        <button class="btn-share" id="share-button" onclick="shareResultImage()" disabled>📸 이미지 공유</button>
+        <button class="btn-share" id="share-button" onclick="shareResultImage()" disabled>📸 이미지로 공유</button>
     </div>
     <div id="canvas-container"><canvas id="ladderCanvas" height="650" onclick="handleCanvasClick(event)"></canvas></div>
     <div id="result-box"></div>
@@ -107,6 +107,7 @@ function drawLadderAndResult() {
         alert("이름과 방 번호를 각각 2개 이상, 같은 개수로 입력해 주세요.");
         return;
     }
+
     currentNames.sort(() => Math.random() - 0.5);
     currentRooms.sort(() => Math.random() - 0.5);
     savedNamesOrder = [...currentNames];
@@ -251,25 +252,23 @@ function shareResultImage() {
         alert("먼저 사다리 타기를 시작해 주세요.");
         return;
     }
-    if (!navigator.share || !navigator.canShare) {
-        alert("현재 브라우저는 이미지 직접 공유를 지원하지 않습니다. iPhone Safari 또는 Android Chrome에서 페이지를 열어 다시 시도해 주세요.");
-        return;
-    }
 
     const sourceCanvas = document.getElementById('ladderCanvas');
     const output = document.createElement('canvas');
     const width = 1200;
     const padding = 48;
-    const ladderHeight = 430;
+    const ladderHeight = 430; // 공유 이미지에서는 사다리 높이를 줄여 결과 목록 공간을 확보합니다.
     const resultTitleHeight = 64;
     const rowHeight = 42;
     const resultsHeight = resultTitleHeight + savedResults.length * rowHeight;
     const ladderTop = 118;
+    const ladderBottom = 28;
     const resultTop = ladderTop + ladderHeight + 28;
 
     output.width = width;
-    output.height = resultTop + resultsHeight + 28;
+    output.height = resultTop + resultsHeight + ladderBottom;
     const ctx = output.getContext('2d');
+
     ctx.fillStyle = '#f5f7fb';
     ctx.fillRect(0, 0, output.width, output.height);
     ctx.fillStyle = '#2f3640';
@@ -284,6 +283,7 @@ function shareResultImage() {
     ctx.lineWidth = 2;
     ctx.fillRect(ladderLeft, ladderTop, ladderWidth, ladderHeight);
     ctx.strokeRect(ladderLeft, ladderTop, ladderWidth, ladderHeight);
+    // 사다리 그림은 세로로 압축해 아래의 매칭 결과가 온전히 들어가도록 합니다.
     ctx.drawImage(sourceCanvas, ladderLeft + 16, ladderTop + 14, ladderWidth - 32, ladderHeight - 28);
 
     ctx.fillStyle = '#ffffff';
@@ -299,6 +299,7 @@ function shareResultImage() {
         const y = resultTop + resultTitleHeight + index * rowHeight;
         const label = `👤 ${person.name}   ➔   🚪 [ ${person.room} ]`;
         ctx.font = 'bold 26px "Malgun Gothic", sans-serif';
+        // 긴 이름도 결과 이미지 안에서 잘리지 않도록 필요한 경우 글꼴 크기를 줄입니다.
         while (ctx.measureText(label).width > width - padding * 2 - 48 && parseInt(ctx.font, 10) > 16) {
             ctx.font = `bold ${parseInt(ctx.font, 10) - 1}px "Malgun Gothic", sans-serif`;
         }
@@ -312,19 +313,21 @@ function shareResultImage() {
             return;
         }
         const file = new File([blob], 'ladder-result.png', { type: 'image/png' });
-        const shareData = { title: '사다리 결과', text: '사다리 결과와 방 배정이 완료됐어요!', files: [file] };
-        if (!navigator.canShare({ files: [file] })) {
-            alert('현재 브라우저나 공유 앱에서 이미지 공유를 지원하지 않습니다. 다른 브라우저나 공유 앱을 선택해 주세요.');
-            return;
-        }
         try {
-            await navigator.share(shareData);
-        } catch (error) {
-            if (error && error.name !== 'AbortError') {
-                alert('이미지를 공유하지 못했습니다. 다시 시도해 주세요.');
-                console.error('이미지 공유 실패:', error);
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({ title: '사다리 결과', text: '사다리 결과와 방 배정이 완료됐어요!', files: [file] });
+                return;
             }
+        } catch (error) {
+            if (error && error.name === 'AbortError') return;
+            console.warn('이미지 공유를 사용할 수 없어 다운로드로 대체합니다.', error);
         }
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'ladder-result.png';
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        alert('결과 이미지가 다운로드됐어요. 다운로드한 이미지를 공유해 주세요.');
     }, 'image/png');
 }
 
