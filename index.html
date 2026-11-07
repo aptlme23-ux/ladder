@@ -311,7 +311,7 @@ function shareResultImage() {
             return;
         }
 
-        const file = new File([blob], 'ladder-result.png', { type: 'image/png' });
+        const file = new File([blob], 'ladder-result.jpg', { type: 'image/jpeg' });
         const sharePayload = { title: '사다리 결과', text: '사다리 결과와 방 배정이 완료됐어요!', files: [file] };
 
         if (navigator.share) {
@@ -333,10 +333,10 @@ function shareResultImage() {
 
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = 'ladder-result.png';
+        link.download = 'ladder-result.jpg';
         link.click();
         setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-    }, 'image/png');
+    }, 'image/jpeg', 0.92);
 }
 
 renderLists();
