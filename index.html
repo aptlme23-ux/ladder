@@ -257,7 +257,7 @@ function shareResultImage() {
     const output = document.createElement('canvas');
     const width = 1200;
     const padding = 48;
-    const ladderHeight = 430; // 공유 이미지에서는 사다리 높이를 줄여 결과 목록 공간을 확보합니다.
+    const ladderHeight = 430;
     const resultTitleHeight = 64;
     const rowHeight = 42;
     const resultsHeight = resultTitleHeight + savedResults.length * rowHeight;
@@ -283,7 +283,6 @@ function shareResultImage() {
     ctx.lineWidth = 2;
     ctx.fillRect(ladderLeft, ladderTop, ladderWidth, ladderHeight);
     ctx.strokeRect(ladderLeft, ladderTop, ladderWidth, ladderHeight);
-    // 사다리 그림은 세로로 압축해 아래의 매칭 결과가 온전히 들어가도록 합니다.
     ctx.drawImage(sourceCanvas, ladderLeft + 16, ladderTop + 14, ladderWidth - 32, ladderHeight - 28);
 
     ctx.fillStyle = '#ffffff';
@@ -299,7 +298,6 @@ function shareResultImage() {
         const y = resultTop + resultTitleHeight + index * rowHeight;
         const label = `👤 ${person.name}   ➔   🚪 [ ${person.room} ]`;
         ctx.font = 'bold 26px "Malgun Gothic", sans-serif';
-        // 긴 이름도 결과 이미지 안에서 잘리지 않도록 필요한 경우 글꼴 크기를 줄입니다.
         while (ctx.measureText(label).width > width - padding * 2 - 48 && parseInt(ctx.font, 10) > 16) {
             ctx.font = `bold ${parseInt(ctx.font, 10) - 1}px "Malgun Gothic", sans-serif`;
         }
@@ -327,7 +325,6 @@ function shareResultImage() {
         link.download = 'ladder-result.png';
         link.click();
         setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-        alert('결과 이미지가 다운로드됐어요. 다운로드한 이미지를 공유해 주세요.');
     }, 'image/png');
 }
 
